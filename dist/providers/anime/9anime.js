@@ -31,9 +31,8 @@ class NineAnime extends models_1.AnimeParser {
             results: [],
         };
         try {
-            const vrf = await this.ev(query);
-            console.log({ vrf });
-            const res = await this.client.get(`/filter?keyword=${query.replace(/%20/g, '+')}&vrf=${encodeURIComponent(vrf)}&page=${page}`);
+            const vrf = await this.searchVrf(query);
+            const res = await this.client.get(`/filter?keyword=${encodeURIComponent(query).replace(/%20/g, '+')}&vrf=${encodeURIComponent(vrf)}&page=${page}`);
             const $ = (0, cheerio_1.load)(res.data);
             searchResult.hasNextPage =
                 $(`ul.pagination`).length > 0
@@ -200,6 +199,7 @@ class NineAnime extends models_1.AnimeParser {
                         sources: await new extractors_1.StreamTape().extract(serverUrl),
                     };
                 case models_1.StreamingServers.VizCloud:
+                case models_1.StreamingServers.VidCloud:
                     return {
                         headers: { Referer: serverUrl.href, 'User-Agent': utils_1.USER_AGENT },
                         sources: await new extractors_1.VizCloud().extract(serverUrl, this.nineAnimeResolver, this.apiKey),
@@ -214,6 +214,8 @@ class NineAnime extends models_1.AnimeParser {
                         headers: { Referer: serverUrl.href, 'User-Agent': utils_1.USER_AGENT },
                         sources: await new extractors_1.Filemoon().extract(serverUrl),
                     };
+                default:
+                    throw new Error('Server not supported');
             }
         }
         try {
@@ -278,17 +280,51 @@ class NineAnime extends models_1.AnimeParser {
         });
         return servers;
     }
-    async ev(query) {
+    async ev(query, raw = false) {
         const { data } = await axios_1.default.get(`${this.nineAnimeResolver}/vrf?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`);
-        return data.url;
+        if (raw) {
+            return data;
+        }
+        else {
+            return data.url;
+        }
+    }
+    async searchVrf(query, raw = false) {
+        const { data } = await axios_1.default.get(`${this.nineAnimeResolver}/9anime-search?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`);
+        if (raw) {
+            return data;
+        }
+        else {
+            return data.url;
+        }
+    }
+    async decrypt(query, raw = false) {
+        const { data } = await axios_1.default.get(`${this.nineAnimeResolver}/decrypt?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`);
+        if (raw) {
+            return data;
+        }
+        else {
+            return data.url;
+        }
+    }
+    async vizcloud(query) {
+        const { data } = await axios_1.default.get(`${this.nineAnimeResolver}/vizcloud?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`);
+        return data;
+    }
+    async customRequest(query, action) {
+        const { data } = await axios_1.default.get(`${this.nineAnimeResolver}/${action}?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`);
+        return data;
     }
 }
 // (async () => {
-//   const nineAnime = new NineAnime();
+//   // const nineAnime = new NineAnime();
 //   // const searchResults = await nineAnime.search('attack on titan');
-//   const animeInfo = await nineAnime.fetchAnimeInfo('shadowverse-flame.rljqn');
-//   // const episodeSources = await nineAnime.fetchEpisodeSources(animeInfo.episodes![0].id, StreamingServers.Filemoon);
-//   console.log(animeInfo);
+//   // const animeInfo = await nineAnime.fetchAnimeInfo('shadowverse-flame.rljqn');
+//   // @ts-ignore
+//   // const episodeSources = await nineAnime.fetchEpisodeSources("ab68", "decrypt");
+//   // console.log(await nineAnime.vizcloud("LNPEK8Q0QPXW"));
+//   // console.log(await nineAnime.decrypt("ab6/", true));
+//   // console.log(await nineAnime.customRequest("LNPEK8Q0QPXW", "9anime-search"));
 // })();
 exports.default = NineAnime;
 //# sourceMappingURL=9anime.js.map

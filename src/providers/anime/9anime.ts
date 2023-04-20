@@ -45,10 +45,11 @@ class NineAnime extends AnimeParser {
     };
 
     try {
-      const vrf = await this.ev(query);
-      console.log({ vrf });
+      const vrf = await this.searchVrf(query);
       const res = await this.client.get(
-        `/filter?keyword=${query.replace(/%20/g, '+')}&vrf=${encodeURIComponent(vrf)}&page=${page}`
+        `/filter?keyword=${encodeURIComponent(query).replace(/%20/g, '+')}&vrf=${encodeURIComponent(
+          vrf
+        )}&page=${page}`
       );
 
       const $ = load(res.data);
@@ -245,6 +246,7 @@ class NineAnime extends AnimeParser {
             sources: await new StreamTape().extract(serverUrl),
           };
         case StreamingServers.VizCloud:
+        case StreamingServers.VidCloud:
           return {
             headers: { Referer: serverUrl.href, 'User-Agent': USER_AGENT },
             sources: await new VizCloud().extract(serverUrl, this.nineAnimeResolver, this.apiKey),
@@ -259,6 +261,8 @@ class NineAnime extends AnimeParser {
             headers: { Referer: serverUrl.href, 'User-Agent': USER_AGENT },
             sources: await new Filemoon().extract(serverUrl),
           };
+        default:
+          throw new Error('Server not supported');
       }
     }
     try {
@@ -340,21 +344,68 @@ class NineAnime extends AnimeParser {
     return servers;
   }
 
-  private async ev(query: string): Promise<string> {
+  public async ev(query: string, raw = false): Promise<string> {
     const { data } = await axios.get(
       `${this.nineAnimeResolver}/vrf?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`
     );
-    return data.url;
+
+    if (raw) {
+      return data;
+    } else {
+      return data.url;
+    }
+  }
+
+  public async searchVrf(query: string, raw = false): Promise<string> {
+    const { data } = await axios.get(
+      `${this.nineAnimeResolver}/9anime-search?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`
+    );
+
+    if (raw) {
+      return data;
+    } else {
+      return data.url;
+    }
+  }
+
+  public async decrypt(query: string, raw = false): Promise<string> {
+    const { data } = await axios.get(
+      `${this.nineAnimeResolver}/decrypt?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`
+    );
+
+    if (raw) {
+      return data;
+    } else {
+      return data.url;
+    }
+  }
+
+  public async vizcloud(query: string): Promise<string> {
+    const { data } = await axios.get(
+      `${this.nineAnimeResolver}/vizcloud?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`
+    );
+    return data;
+  }
+
+  public async customRequest(query: string, action: string): Promise<string> {
+    const { data } = await axios.get(
+      `${this.nineAnimeResolver}/${action}?query=${encodeURIComponent(query)}&apikey=${this.apiKey}`
+    );
+    return data;
   }
 }
 
 // (async () => {
-//   const nineAnime = new NineAnime();
+//   // const nineAnime = new NineAnime();
 
 //   // const searchResults = await nineAnime.search('attack on titan');
-//   const animeInfo = await nineAnime.fetchAnimeInfo('shadowverse-flame.rljqn');
-//   // const episodeSources = await nineAnime.fetchEpisodeSources(animeInfo.episodes![0].id, StreamingServers.Filemoon);
-//   console.log(animeInfo);
+//   // const animeInfo = await nineAnime.fetchAnimeInfo('shadowverse-flame.rljqn');
+//   // @ts-ignore
+//   // const episodeSources = await nineAnime.fetchEpisodeSources("ab68", "decrypt");
+//   // console.log(await nineAnime.vizcloud("LNPEK8Q0QPXW"));
+//   // console.log(await nineAnime.decrypt("ab6/", true));
+//   // console.log(await nineAnime.customRequest("LNPEK8Q0QPXW", "9anime-search"));
+
 // })();
 
 export default NineAnime;
